@@ -1,124 +1,90 @@
+// Get the canvas element and set up the scene
 const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-canvas.width = 800;
-canvas.height = 600;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ canvas });
+renderer.setSize(window.innerWidth, window.innerHeight);
 
-// Player object
-const player = {
-  x: 50,
-  y: 500,
-  width: 50,
-  height: 50,
-  speed: 5,
-  dx: 0,
-  dy: 0,
-  gravity: 0.5,
-  jumpPower: -12,
-  isJumping: false,
-  color: 'red',
-};
+// Car setup
+const carGeometry = new THREE.BoxGeometry(2, 1, 4);
+const carMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+const car = new THREE.Mesh(carGeometry, carMaterial);
+car.position.y = -5;
+scene.add(car);
 
-// Obstacles array
-const obstacles = [
-  { x: 300, y: 550, width: 50, height: 50, color: 'black' },
-  { x: 600, y: 450, width: 50, height: 50, color: 'black' }
-];
+// Road setup
+const roadGeometry = new THREE.PlaneGeometry(500, 500);
+const roadMaterial = new THREE.MeshBasicMaterial({ color: 0x333333, side: THREE.DoubleSide });
+const road = new THREE.Mesh(roadGeometry, roadMaterial);
+road.rotation.x = -Math.PI / 2;
+road.position.y = -10;
+scene.add(road);
 
-// Boss object
-const boss = {
-  x: 600,
-  y: 200,
-  width: 100,
-  height: 100,
-  color: 'darkred',
-  health: 100
-};
-
-// Key events
-let keys = {};
-
-document.addEventListener('keydown', (e) => {
-  keys[e.key] = true;
-});
-document.addEventListener('keyup', (e) => {
-  keys[e.key] = false;
-});
-
-// Move player
-function movePlayer() {
-  if (keys['a'] || keys['ArrowLeft']) {
-    player.dx = -player.speed;
-  } else if (keys['d'] || keys['ArrowRight']) {
-    player.dx = player.speed;
-  } else {
-    player.dx = 0;
-  }
-
-  if ((keys['w'] || keys['ArrowUp']) && !player.isJumping) {
-    player.dy = player.jumpPower;
-    player.isJumping = true;
-  }
-
-  player.x += player.dx;
-  player.y += player.dy;
-  if (player.y < canvas.height - player.height) {
-    player.dy += player.gravity;
-  } else {
-    player.y = canvas.height - player.height;
-    player.isJumping = false;
-  }
+// Add obstacles (cars) to the road
+const obstacleMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+const obstacles = [];
+for (let i = 0; i < 10; i++) {
+  const obstacle = new THREE.Mesh(carGeometry, obstacleMaterial);
+  obstacle.position.set(Math.random() * 6 - 3, -5, -i * 10);
+  obstacles.push(obstacle);
+  scene.add(obstacle);
 }
 
-// Draw the player, obstacles, and boss
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+// Camera positioning
+camera.position.z = 10;
+camera.position.y = 3;
 
-  ctx.fillStyle = player.color;
-  ctx.fillRect(player.x, player.y, player.width, player.height);
+// Movement setup
+let moveLeft = false;
+let moveRight = false;
+let carSpeed = 0.1;
+let moveSpeed = 0.2;
 
-  obstacles.forEach((obstacle) => {
-    ctx.fillStyle = obstacle.color;
-    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-  });
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'a' || event.key === 'ArrowLeft') moveLeft = true;
+  if (event.key === 'd' || event.key === 'ArrowRight') moveRight = true;
+});
 
-  ctx.fillStyle = boss.color;
-  ctx.fillRect(boss.x, boss.y, boss.width, boss.height);
-  
-  ctx.fillStyle = 'white';
-  ctx.font = '20px Arial';
-  ctx.fillText(`Boss Health: ${boss.health}`, boss.x - 10, boss.y - 10);
-}
+document.addEventListener('keyup', (event) => {
+  if (event.key === 'a' || event.key === 'ArrowLeft') moveLeft = false;
+  if (event.key === 'd' || event.key === 'ArrowRight') moveRight = false;
+});
 
-// Check for collisions with obstacles
-function checkCollisions() {
-  obstacles.forEach((obstacle) => {
-    if (player.x < obstacle.x + obstacle.width &&
-        player.x + player.width > obstacle.x &&
-        player.y < obstacle.y + obstacle.height &&
-        player.y + player.height > obstacle.y) {
-      player.x = 50;
-      player.y = 500;
+// Game logic
+function animate() {
+  requestAnimationFrame(animate);
+
+  // Move the player's car
+  if (moveLeft && car.position.x > -3) car.position.x -= moveSpeed;
+  if (moveRight && car.position.x < 3) car.position.x += moveSpeed;
+
+  // Move obstacles (cars)
+  obstacles.forEach(obstacle => {
+    obstacle.position.z += carSpeed;
+    if (obstacle.position.z > 0) {
+      obstacle.position.z = -100;
+      obstacle.position.x = Math.random() * 6 - 3;
     }
   });
+
+  // Check for collisions
+  obstacles.forEach(obstacle => {
+    if (car.position.x < obstacle.position.x + 2 && car.position.x + 2 > obstacle.position.x &&
+      car.position.z < obstacle.position.z + 2 && car.position.z + 2 > obstacle.position.z) {
+      alert('Game Over!');
+      resetGame();
+    }
+  });
+
+  renderer.render(scene, camera);
 }
 
-// Boss fight mechanics
-function bossFight() {
-  if (player.x < boss.x + boss.width &&
-      player.x + player.width > boss.x &&
-      player.y < boss.y + boss.height &&
-      player.y + player.height > boss.y) {
-    boss.health -= 1; 
-  }
+function resetGame() {
+  car.position.x = 0;
+  car.position.z = -10;
+  obstacles.forEach(obstacle => {
+    obstacle.position.z = -Math.random() * 100;
+  });
 }
 
-// Game loop
-function gameLoop() {
-  movePlayer();
-  checkCollisions();
-  bossFight();
-  draw();
-  requestAnimationFrame(gameLoop);
-}
-
-gameLoop();
+animate();
