@@ -1,4 +1,3 @@
-// Set up canvas and context
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 canvas.width = 800;
@@ -38,7 +37,6 @@ const boss = {
 // Key events
 let keys = {};
 
-// Event listeners for controls
 document.addEventListener('keydown', (e) => {
   keys[e.key] = true;
 });
@@ -64,7 +62,7 @@ function movePlayer() {
   player.x += player.dx;
   player.y += player.dy;
   if (player.y < canvas.height - player.height) {
-    player.dy += player.gravity; // Apply gravity
+    player.dy += player.gravity;
   } else {
     player.y = canvas.height - player.height;
     player.isJumping = false;
@@ -75,21 +73,17 @@ function movePlayer() {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Draw player
   ctx.fillStyle = player.color;
   ctx.fillRect(player.x, player.y, player.width, player.height);
 
-  // Draw obstacles
   obstacles.forEach((obstacle) => {
     ctx.fillStyle = obstacle.color;
     ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
   });
 
-  // Draw boss
   ctx.fillStyle = boss.color;
   ctx.fillRect(boss.x, boss.y, boss.width, boss.height);
   
-  // Draw boss health
   ctx.fillStyle = 'white';
   ctx.font = '20px Arial';
   ctx.fillText(`Boss Health: ${boss.health}`, boss.x - 10, boss.y - 10);
@@ -102,7 +96,6 @@ function checkCollisions() {
         player.x + player.width > obstacle.x &&
         player.y < obstacle.y + obstacle.height &&
         player.y + player.height > obstacle.y) {
-      // Collision detected, reset player position
       player.x = 50;
       player.y = 500;
     }
@@ -111,12 +104,11 @@ function checkCollisions() {
 
 // Boss fight mechanics
 function bossFight() {
-  // Basic damage system for the boss
   if (player.x < boss.x + boss.width &&
       player.x + player.width > boss.x &&
       player.y < boss.y + boss.height &&
       player.y + player.height > boss.y) {
-    boss.health -= 1; // Boss takes damage when colliding with the player
+    boss.health -= 1; 
   }
 }
 
@@ -126,8 +118,7 @@ function gameLoop() {
   checkCollisions();
   bossFight();
   draw();
-  requestAnimationFrame(gameLoop); // Keep the loop going
+  requestAnimationFrame(gameLoop);
 }
 
-// Start the game loop
 gameLoop();
