@@ -1,19 +1,19 @@
-/* General styles */
-body {
-    margin: 0;
-    padding: 0;
-    background-color: #f0f0f0;
-    overflow: hidden;
+// Change the background color of the game container
+function changeBackgroundColor(color) {
+    document.body.style.backgroundColor = color;
 }
 
-.game-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+// Update the style of the score text dynamically
+function updateScoreTextStyle(scoreText) {
+    scoreText.setStyle({
+        fontSize: '40px',
+        fill: '#FF0000', // Red color for high score
+        fontFamily: 'Arial'
+    });
 }
 
-canvas {
-    display: block;
+// Example: Make the player’s sprite pulse when a power-up is collected
+function pulsePlayerSprite(player) {
+    player.setScale(1.2);
+    setTimeout(() => player.setScale(1), 200); // Reset after pulsing
 }
