@@ -1,119 +1,139 @@
 // Game Setup
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+let scene, camera, renderer, hoverboard, cars = [], score = 0, clock, carSpeed = 0.1;
+const roadWidth = 10, hoverboardWidth = 1, hoverboardHeight = 0.3;
+const carWidth = 2, carHeight = 0.5, carDepth = 1;
+const maxCarSpeed = 0.2;
 
-// Game Variables
-let hoverboardX = canvas.width / 2 - 25;  // Position of the hoverboard (centered horizontally)
-let hoverboardY = canvas.height - 100;    // Position of the hoverboard (near the bottom)
-let hoverboardSpeed = 5;                  // Speed of the hoverboard movement
-let rightPressed = false;
-let leftPressed = false;
+// Initialize the scene, camera, and renderer
+function init() {
+    // Create the scene
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x111111);  // Dark background for 3D effect
 
-// Car Variables
-let cars = [];
-let carSpeed = 3;
-let score = 0;
+    // Set up the camera
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 5;
 
-// Keyboard Events
-document.addEventListener('keydown', keyDownHandler);
-document.addEventListener('keyup', keyUpHandler);
+    // Set up the renderer
+    renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas') });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
 
-function keyDownHandler(e) {
-    if (e.key === "ArrowRight" || e.key === "Right") {
-        rightPressed = true;
-    } else if (e.key === "ArrowLeft" || e.key === "Left") {
-        leftPressed = true;
+    // Add the hoverboard
+    addHoverboard();
+
+    // Add the road (simple large flat plane)
+    addRoad();
+
+    // Start the game loop
+    clock = new THREE.Clock();
+    animate();
+}
+
+// Add Hoverboard (as a simple cube)
+function addHoverboard() {
+    const geometry = new THREE.BoxGeometry(hoverboardWidth, hoverboardHeight, hoverboardWidth);
+    const material = new THREE.MeshBasicMaterial({ color: 0xff9900 });
+    hoverboard = new THREE.Mesh(geometry, material);
+    hoverboard.position.set(0, -2, 0);
+    scene.add(hoverboard);
+}
+
+// Add the road (for the hoverboard to move on)
+function addRoad() {
+    const geometry = new THREE.PlaneGeometry(roadWidth, 1000);
+    const material = new THREE.MeshBasicMaterial({ color: 0x333333, side: THREE.DoubleSide });
+    const road = new THREE.Mesh(geometry, material);
+    road.rotation.x = Math.PI / 2;
+    road.position.set(0, -5, 0);
+    scene.add(road);
+}
+
+// Create a car (as a simple box)
+function addCar() {
+    const geometry = new THREE.BoxGeometry(carWidth, carHeight, carDepth);
+    const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const car = new THREE.Mesh(geometry, material);
+
+    // Random position for the car
+    const xPos = Math.random() * roadWidth - roadWidth / 2;
+    const zPos = 10 + Math.random() * 5;  // Cars appear further away
+    car.position.set(xPos, -3, zPos);
+    scene.add(car);
+    cars.push(car);
+}
+
+// Game update logic
+function update() {
+    const delta = clock.getDelta();  // Time elapsed between frames
+
+    // Hoverboard movement (left-right with arrow keys)
+    if (rightPressed && hoverboard.position.x < roadWidth / 2 - hoverboardWidth / 2) {
+        hoverboard.position.x += 0.05;
     }
-}
-
-function keyUpHandler(e) {
-    if (e.key === "ArrowRight" || e.key === "Right") {
-        rightPressed = false;
-    } else if (e.key === "ArrowLeft" || e.key === "Left") {
-        leftPressed = false;
-    }
-}
-
-// Hoverboard Drawing
-function drawHoverboard() {
-    ctx.beginPath();
-    ctx.rect(hoverboardX, hoverboardY, 50, 20);  // Hoverboard size and position
-    ctx.fillStyle = "#ff9900";
-    ctx.fill();
-    ctx.closePath();
-}
-
-// Car Drawing
-function drawCar(car) {
-    ctx.beginPath();
-    ctx.rect(car.x, car.y, 50, 20);  // Car size and position
-    ctx.fillStyle = "#ff0000";
-    ctx.fill();
-    ctx.closePath();
-}
-
-// Generate New Cars
-function generateCars() {
-    if (Math.random() < 0.02) {  // Increase this value for more frequent cars
-        let carX = Math.random() * (canvas.width - 50); // Random X position for the car
-        let carY = -20;  // Start just above the canvas
-        cars.push({ x: carX, y: carY });
-    }
-}
-
-// Update Game State
-function updateGame() {
-    // Move the hoverboard based on keypresses
-    if (rightPressed && hoverboardX < canvas.width - 50) {
-        hoverboardX += hoverboardSpeed;
-    } else if (leftPressed && hoverboardX > 0) {
-        hoverboardX -= hoverboardSpeed;
+    if (leftPressed && hoverboard.position.x > -roadWidth / 2 + hoverboardWidth / 2) {
+        hoverboard.position.x -= 0.05;
     }
 
-    // Update car positions and check for collisions
-    for (let i = 0; i < cars.length; i++) {
-        cars[i].y += carSpeed;
+    // Move cars
+    cars.forEach((car, index) => {
+        car.position.z -= carSpeed; // Move the car forward
 
-        // Check for collision with hoverboard
-        if (cars[i].y + 20 > hoverboardY && cars[i].y < hoverboardY + 20 &&
-            cars[i].x + 50 > hoverboardX && cars[i].x < hoverboardX + 50) {
-            alert("Game Over! Collision detected.");
-            document.location.reload();  // Restart the game on collision
+        // Remove cars that go off screen
+        if (car.position.z < -10) {
+            scene.remove(car);
+            cars.splice(index, 1);
+            score += 10;  // Increase score for dodging
         }
 
-        if (cars[i].y > canvas.height) {
-            cars.splice(i, 1);  // Remove the car if it goes off the screen
-            score += 10; // Increment score for dodging a car
-            i--;
+        // Check collision
+        if (car.position.z < hoverboard.position.z + hoverboardHeight / 2 && car.position.z > hoverboard.position.z - hoverboardHeight / 2 &&
+            car.position.x < hoverboard.position.x + hoverboardWidth / 2 && car.position.x > hoverboard.position.x - hoverboardWidth / 2) {
+            alert("Game Over! You hit a car.");
+            resetGame();
         }
+    });
+
+    // Add new cars
+    if (Math.random() < 0.05) {
+        addCar();
     }
-
-    generateCars();
 }
 
-// Draw Score on Screen
-function drawScore() {
-    ctx.font = "16px Arial";
-    ctx.fillStyle = "#fff";
-    ctx.fillText("Score: " + score, 10, 20);
+// Render the scene and update
+function animate() {
+    requestAnimationFrame(animate);
+
+    update();  // Update game logic
+
+    renderer.render(scene, camera);  // Render the scene
+
+    // Simulate 3D motion of the camera to mimic forward movement
+    camera.position.z -= 0.05;
 }
 
-// Clear Canvas and Draw Everything
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);  // Clear the canvas
+// Keyboard Event Handling
+let rightPressed = false, leftPressed = false;
 
-    drawHoverboard();
-    drawScore();  // Display the score
+document.addEventListener('keydown', (event) => {
+    if (event.key === "ArrowRight" || event.key === "d") rightPressed = true;
+    if (event.key === "ArrowLeft" || event.key === "a") leftPressed = true;
+});
 
-    // Draw each car
-    for (let i = 0; i < cars.length; i++) {
-        drawCar(cars[i]);
-    }
+document.addEventListener('keyup', (event) => {
+    if (event.key === "ArrowRight" || event.key === "d") rightPressed = false;
+    if (event.key === "ArrowLeft" || event.key === "a") leftPressed = false;
+});
 
-    updateGame();  // Update game mechanics (car movement, collisions, etc.)
-
-    requestAnimationFrame(draw);  // Keep the game running
+// Reset the game after collision
+function resetGame() {
+    scene.clear();  // Clear all objects
+    cars = [];
+    score = 0;
+    camera.position.z = 5;
+    addHoverboard();
+    addRoad();
 }
 
-// Start the Game
-draw();
+// Initialize the game when the page is ready
+init();
