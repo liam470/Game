@@ -17,3 +17,21 @@ function pulsePlayerSprite(player) {
     player.setScale(1.2);
     setTimeout(() => player.setScale(1), 200); // Reset after pulsing
 }
+// Inside the `hitEnemy` function, when coins increase:
+function hitEnemy(bullet, enemy) {
+    bullet.setActive(false).setVisible(false);
+    enemy.setActive(false).setVisible(false);
+    coins += 1;
+    scoreText.setText('Coins: ' + coins);
+
+    // Change background color dynamically when the score is high
+    if (coins >= 10) {
+        changeBackgroundColor('#1E1E1E');  // Dark background after 10 coins
+    }
+
+    // Update score text style
+    updateScoreTextStyle(scoreText);
+
+    let newEnemy = enemies.create(Phaser.Math.Between(100, 700), Phaser.Math.Between(50, 200), 'enemy');
+    newEnemy.setVelocity(Phaser.Math.Between(-50, 50), 0);
+}
