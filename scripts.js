@@ -12,23 +12,24 @@ let leftPressed = false;
 // Car Variables
 let cars = [];
 let carSpeed = 3;
+let score = 0;
 
 // Keyboard Events
 document.addEventListener('keydown', keyDownHandler);
 document.addEventListener('keyup', keyUpHandler);
 
 function keyDownHandler(e) {
-    if (e.key === "Right" || e.key === "ArrowRight") {
+    if (e.key === "ArrowRight" || e.key === "Right") {
         rightPressed = true;
-    } else if (e.key === "Left" || e.key === "ArrowLeft") {
+    } else if (e.key === "ArrowLeft" || e.key === "Left") {
         leftPressed = true;
     }
 }
 
 function keyUpHandler(e) {
-    if (e.key === "Right" || e.key === "ArrowRight") {
+    if (e.key === "ArrowRight" || e.key === "Right") {
         rightPressed = false;
-    } else if (e.key === "Left" || e.key === "ArrowLeft") {
+    } else if (e.key === "ArrowLeft" || e.key === "Left") {
         leftPressed = false;
     }
 }
@@ -53,9 +54,9 @@ function drawCar(car) {
 
 // Generate New Cars
 function generateCars() {
-    if (Math.random() < 0.02) {
-        let carX = Math.random() * (canvas.width - 50);
-        let carY = -20;  // Start above the canvas
+    if (Math.random() < 0.02) {  // Increase this value for more frequent cars
+        let carX = Math.random() * (canvas.width - 50); // Random X position for the car
+        let carY = -20;  // Start just above the canvas
         cars.push({ x: carX, y: carY });
     }
 }
@@ -82,6 +83,7 @@ function updateGame() {
 
         if (cars[i].y > canvas.height) {
             cars.splice(i, 1);  // Remove the car if it goes off the screen
+            score += 10; // Increment score for dodging a car
             i--;
         }
     }
@@ -89,17 +91,26 @@ function updateGame() {
     generateCars();
 }
 
+// Draw Score on Screen
+function drawScore() {
+    ctx.font = "16px Arial";
+    ctx.fillStyle = "#fff";
+    ctx.fillText("Score: " + score, 10, 20);
+}
+
 // Clear Canvas and Draw Everything
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);  // Clear the canvas
 
     drawHoverboard();
+    drawScore();  // Display the score
 
+    // Draw each car
     for (let i = 0; i < cars.length; i++) {
         drawCar(cars[i]);
     }
 
-    updateGame();
+    updateGame();  // Update game mechanics (car movement, collisions, etc.)
 
     requestAnimationFrame(draw);  // Keep the game running
 }
